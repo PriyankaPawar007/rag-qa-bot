@@ -16,5 +16,5 @@ TOP_K_RESULTS = 5
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
 # Ollama local model (free, runs on your computer)
-OLLAMA_MODEL = "mistral"
+OLLAMA_MODEL = "tinyllama"
 OLLAMA_BASE_URL = "http://localhost:11434"
