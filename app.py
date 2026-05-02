@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-import shutil
+import time
 from ingest import main as index_documents
 from retriever import ask_question
 
@@ -9,6 +9,97 @@ st.set_page_config(
     page_icon="📚",
     layout="wide"
 )
+
+# ── LOADING SCREEN ──
+if "app_loaded" not in st.session_state:
+    st.session_state.app_loaded = False
+
+if not st.session_state.app_loaded:
+    placeholder = st.empty()
+    with placeholder.container():
+        st.markdown("""
+        <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .loader-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 75vh;
+            text-align: center;
+            animation: slideIn 0.5s ease;
+        }
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid #1a1a2e;
+            border-top: 5px solid #00d4ff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 25px;
+        }
+        .pulse-text {
+            animation: pulse 1.5s ease infinite;
+            color: #00d4ff;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00d4ff;
+            margin: 0 4px;
+        }
+        .dot:nth-child(1) { animation: pulse 1s ease infinite 0s; }
+        .dot:nth-child(2) { animation: pulse 1s ease infinite 0.2s; }
+        .dot:nth-child(3) { animation: pulse 1s ease infinite 0.4s; }
+        </style>
+
+        <div class="loader-container">
+            <div style="font-size: 4rem; margin-bottom: 10px;">📚</div>
+            <div class="spinner"></div>
+            <h2 style="color: #00d4ff; font-size: 1.8rem; margin: 0;">
+                Document Q&A Bot
+            </h2>
+            <p class="pulse-text">Setting up your AI assistant...</p>
+            <div style="margin: 15px 0;">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            </div>
+            <div style="
+                background: #1a1a2e;
+                border: 1px solid #00d4ff33;
+                border-radius: 12px;
+                padding: 15px 30px;
+                color: #86efac;
+                font-size: 0.95rem;
+                line-height: 1.8;
+                margin-top: 10px;
+            ">
+                ✨ Almost ready! Hang tight...<br>
+                🧠 Loading AI models in background<br>
+                💡 Make sure Ollama is running!
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        time.sleep(1)
+    placeholder.empty()
+    st.session_state.app_loaded = True
+    st.rerun()
 
 st.markdown("""
 <style>
@@ -25,38 +116,6 @@ st.markdown("""
 }
 .hero h1 { color: #00d4ff; font-size: 2.5rem; font-weight: 700; margin: 0; }
 .hero p { color: #a0aec0; font-size: 1.1rem; margin-top: 10px; }
-
-.tip-box {
-    background: #1a2e1a;
-    border: 1px solid #22c55e44;
-    border-left: 4px solid #22c55e;
-    border-radius: 12px;
-    padding: 15px 18px;
-    color: #86efac;
-    font-size: 0.9rem;
-    margin: 10px 0;
-    line-height: 1.8;
-}
-
-.doc-card {
-    background: #1a1a2e;
-    border: 1px solid #00d4ff33;
-    border-radius: 12px;
-    padding: 12px 16px;
-    margin: 6px 0;
-    color: #e2e8f0;
-    font-size: 0.9rem;
-}
-.doc-card-active {
-    background: #1e3a5f;
-    border: 2px solid #00d4ff;
-    border-radius: 12px;
-    padding: 12px 16px;
-    margin: 6px 0;
-    color: #00d4ff;
-    font-weight: 600;
-    font-size: 0.9rem;
-}
 
 .answer-card {
     background: linear-gradient(135deg, #1a2744, #1e3a5f);
@@ -88,14 +147,6 @@ st.markdown("""
     margin: 4px 2px;
     display: inline-block;
 }
-.upload-box {
-    background: #1a1a2e;
-    border: 2px dashed #00d4ff44;
-    border-radius: 15px;
-    padding: 20px;
-    text-align: center;
-    margin: 10px 0;
-}
 .stats-box {
     background: #1a1a2e;
     border: 1px solid #00d4ff22;
@@ -105,7 +156,17 @@ st.markdown("""
     color: #a0aec0;
 }
 .stats-number { color: #00d4ff; font-size: 1.8rem; font-weight: 700; }
-
+.tip-box {
+    background: #1a2e1a;
+    border: 1px solid #22c55e44;
+    border-left: 4px solid #22c55e;
+    border-radius: 12px;
+    padding: 15px 18px;
+    color: #86efac;
+    font-size: 0.9rem;
+    margin: 10px 0;
+    line-height: 1.8;
+}
 .stTextInput > div > div > input {
     background: #1a1a2e !important;
     color: #e2e8f0 !important;
@@ -183,38 +244,34 @@ doc_suggestions = {
     ],
 }
 
-# ─── SIDEBAR ───────────────────────────────────────────────
+# ── SIDEBAR ──
 with st.sidebar:
     st.markdown("## 🗂️ Control Panel")
     st.markdown("---")
 
-    # ── TIPS ──
     with st.expander("💡 Tips & How to Use", expanded=False):
         st.markdown("""
         <div class="tip-box">
-        📌 <b>How to use this app:</b><br><br>
-        1️⃣ Upload your PDF/TXT/DOCX files below<br>
+        📌 <b>How to use:</b><br><br>
+        1️⃣ Upload PDF/TXT/DOCX files below<br>
         2️⃣ Click <b>Index Documents</b> after uploading<br>
         3️⃣ Select a document from the list<br>
         4️⃣ Click a suggested question OR type your own<br>
         5️⃣ Press <b>Enter</b> or click <b>Ask</b><br><br>
         ⚡ <b>Shortcuts:</b><br>
-        • Press <b>Enter</b> to submit question<br>
+        • Press <b>Enter</b> to submit<br>
         • Click <b>Clear</b> to reset answers<br>
-        • Click <b>Re-Index</b> after adding new files<br><br>
-        ⚠️ <b>Note:</b> First answer may take 30-60 seconds
+        • Click <b>Re-Index</b> after new files<br><br>
+        ⚠️ First answer may take 30-60 seconds
         </div>
         """, unsafe_allow_html=True)
 
     st.markdown("---")
-
-    # ── UPLOAD DOCUMENTS ──
     st.markdown("### 📤 Upload Documents")
     uploaded_files = st.file_uploader(
         "Drop your files here",
         type=["pdf", "txt", "docx"],
-        accept_multiple_files=True,
-        help="Upload PDF, TXT, or DOCX files to add to your knowledge base"
+        accept_multiple_files=True
     )
 
     if uploaded_files:
@@ -224,41 +281,33 @@ with st.sidebar:
             with open(save_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
             saved_count += 1
-        st.success(f"✅ {saved_count} file(s) uploaded successfully!")
-        st.info("👇 Click **Index Documents** to make them searchable!")
+        st.success(f"✅ {saved_count} file(s) uploaded!")
+        st.info("👇 Click Index Documents now!")
         docs = [f for f in os.listdir(DATA_FOLDER) if f.endswith(('.pdf', '.txt', '.docx'))]
 
     st.markdown("---")
-
-    # ── INDEX BUTTON ──
     if st.button("🔄 Index Documents", use_container_width=True):
-        with st.spinner("⏳ Indexing... please wait (2-3 mins first time)"):
+        with st.spinner("⏳ Indexing... please wait"):
             try:
                 index_documents()
-                st.success("✅ Indexing complete!")
+                st.success("✅ Done!")
                 st.balloons()
             except Exception as e:
                 st.error(f"❌ {str(e)}")
 
     st.markdown("---")
-
-    # ── DOCUMENT LIST ──
     st.markdown("### 📁 Documents")
     if docs:
         for doc in docs:
             is_active = st.session_state.selected_doc == doc
-            emoji = "📕" if doc.endswith(".pdf") else ("📝" if doc.endswith(".txt") else "📘")
-            label = f"{'✅' if is_active else emoji} {doc}"
-            if st.button(label, key=f"doc_{doc}", use_container_width=True):
+            emoji = "✅" if is_active else ("📕" if doc.endswith(".pdf") else "📝")
+            if st.button(f"{emoji} {doc}", key=f"doc_{doc}", use_container_width=True):
                 st.session_state.selected_doc = doc
                 st.rerun()
     else:
-        st.warning("⚠️ No documents found! Upload some above.")
+        st.warning("⚠️ No documents found!")
 
     st.markdown("---")
-
-    # ── STATS ──
-    st.markdown("### 📊 Stats")
     col_a, col_b = st.columns(2)
     with col_a:
         st.markdown(f'<div class="stats-box"><div class="stats-number">{len(docs)}</div>📄 Docs</div>', unsafe_allow_html=True)
@@ -266,8 +315,6 @@ with st.sidebar:
         st.markdown(f'<div class="stats-box"><div class="stats-number">{len(st.session_state.messages)}</div>💬 Asked</div>', unsafe_allow_html=True)
 
     st.markdown("---")
-
-    # ── DELETE DOCUMENTS ──
     with st.expander("🗑️ Manage Documents", expanded=False):
         if docs:
             doc_to_delete = st.selectbox("Select file to delete:", docs)
@@ -280,18 +327,16 @@ with st.sidebar:
         else:
             st.info("No documents to manage.")
 
-# ─── MAIN CONTENT ───────────────────────────────────────────
+# ── MAIN CONTENT ──
 if st.session_state.selected_doc:
     selected = st.session_state.selected_doc
     st.markdown(f"### 📖 Exploring: `{selected}`")
-
     suggestions = doc_suggestions.get(selected, [
-        "What is the main topic of this document?",
+        "What is the main topic?",
         "Summarize the key points",
         "What are the important concepts?",
         "Give me examples from this document",
     ])
-
     st.markdown("**💡 Suggested Questions — click to ask instantly:**")
     cols = st.columns(2)
     for i, suggestion in enumerate(suggestions):
@@ -330,7 +375,6 @@ with col3:
         st.session_state.messages = []
         st.rerun()
 
-# Process question
 if question and question.strip() and len(question.strip()) >= 2:
     already_answered = (
         st.session_state.messages and
@@ -338,7 +382,7 @@ if question and question.strip() and len(question.strip()) >= 2:
     )
     if not already_answered:
         if not any(c.isalpha() for c in question):
-            st.warning("⚠️ Please enter a valid question with actual words!")
+            st.warning("⚠️ Please enter a valid question with words!")
         else:
             with st.spinner("🤔 Searching documents and generating answer..."):
                 try:
